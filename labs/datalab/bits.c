@@ -134,6 +134,7 @@ NOTES:
 
 
 #endif
+
 //1
 /* 
  * bitXor - x^y using only ~ and & 
@@ -143,8 +144,13 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+    int a, b, result;
+    a = ~x & ~y;
+    b = x & y;
+    result = ~a & ~b;
+    return result;
 }
+
 /* 
  * tmin - return minimum two's complement integer 
  *   Legal ops: ! ~ & ^ | + << >>
@@ -152,10 +158,11 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-
-  return 2;
-
+    int result;
+    result = 1 << 31;
+    return result;
 }
+
 //2
 /*
  * isTmax - returns 1 if x is the maximum, two's complement number,
@@ -165,8 +172,13 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return 2;
+    int a, b, result;
+    a = ~x ^ (x + 1);
+    b = !!((x + 1) ^ 0);
+    result = !(a) & b;
+    return result;
 }
+
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
  *   where bits are numbered from 0 (least significant) to 31 (most significant)
@@ -176,8 +188,14 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+    int mask, result;
+    mask = (0xAA<<8) | 0xAA;
+    mask = (mask << 16) | mask;
+    x &= mask;
+    result = !(x ^ mask);
+    return result;
 }
+
 /* 
  * negate - return -x 
  *   Example: negate(1) = -1.
@@ -186,8 +204,11 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+    int result;
+    result = ~x + 1;
+    return result;
 }
+
 //3
 /* 
  * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
@@ -199,8 +220,16 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+    int lower_bound, upper_bound, is_greater_equal_lower, is_less_equal_upper;
+    lower_bound = 0x30;  // 48
+    upper_bound = 0x39;  // 57
+
+    is_greater_equal_lower = x + (~lower_bound + 1); // x - 0x30
+    is_less_equal_upper = upper_bound + (~x + 1); // 0x39 - x
+
+    return !((is_greater_equal_lower >> 31) | (is_less_equal_upper >> 31));
 }
+
 /* 
  * conditional - same as x ? y : z 
  *   Example: conditional(2,4,5) = 4
@@ -209,8 +238,12 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+    int mask, result;
+    mask = !x + ~0;
+    result = (mask & y) | (~mask & z);
+    return result;
 }
+
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
  *   Example: isLessOrEqual(4,5) = 1.
@@ -219,8 +252,16 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+    int flagx, flagy, notZero, flag, less, result;
+    flagx = (x >> 31 & 1);
+    flagy = (y >> 31 & 1);
+    notZero = !!(flagx ^ flagy);
+    flag = ~notZero + 1;
+    less = ((x + (~y + 1)) >> 31 & 1);
+    result = (!(x ^ y)) | ((flag & flagx) | (~flag & less));
+    return result;
 }
+
 //4
 /* 
  * logicalNeg - implement the ! operator, using all of 
@@ -231,8 +272,11 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+    int result;
+    result = ((x | (~x + 1)) >> 31) + 1;
+    return result;
 }
+
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
  *  Examples: howManyBits(12) = 5
@@ -246,8 +290,27 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+    int sign, b16, b8, b4, b2, b1, b0, result;
+    
+    sign = x >> 31;
+    x = (sign & ~x) | (~sign & x);
+    
+    b16 = !!(x >> 16) << 4;
+    x = x >> b16;
+    b8 = !!(x >> 8) << 3;
+    x = x >> b8;
+    b4 = !!(x >> 4) << 2;
+    x = x >> b4;
+    b2 = !!(x >> 2) << 1;
+    x = x >> b2;
+    b1 = !!(x >> 1);
+    x = x >> b1;
+    b0 = x;
+    
+    result = b16 + b8 + b4 + b2 + b1 + b0 + 1;
+    return result;
 }
+
 //float
 /* 
  * floatScale2 - Return bit-level equivalent of expression 2*f for
@@ -261,8 +324,31 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+    unsigned exp, frac, sign, result;
+
+    exp = (uf >> 23) & 0xFF;
+    frac = uf & 0x7FFFFF;
+    sign = uf & 0x80000000;
+
+    if (exp == 255) return uf;
+
+    if (exp == 0) {
+        frac <<= 1;
+        if (frac & 0x800000) {
+            exp = 1;
+            frac &= 0x7FFFFF;
+        }
+        result = sign | (exp << 23) | frac;
+        return result;
+    }
+
+    exp += 1;
+    if (exp == 255) return sign | 0x7F800000;
+
+    result = sign | (exp << 23) | frac;
+    return result;
 }
+
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
  *   for floating point argument f.
@@ -276,8 +362,39 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+    unsigned sign = uf >> 31;
+    int exponent = ((uf >> 23) & 0xFF) - 127;
+    unsigned fraction = uf & 0x7FFFFF;
+    
+    // Handling special cases
+    if (exponent >= 31) {
+        return 0x80000000; // Too large to fit in an int, or it's NaN/infinity
+    }
+    
+    if (exponent < 0) {
+        return 0; // Less than 1
+    }
+    
+    // Add the implicit leading 1 to the fraction (normalized numbers)
+    fraction = fraction | 0x800000;
+    
+    // Calculate the integer value
+    if (exponent > 23) {
+        // Shift left if exponent is greater than the fraction bits
+        fraction = fraction << (exponent - 23);
+    } else {
+        // Shift right if exponent is less or equal
+        fraction = fraction >> (23 - exponent);
+    }
+    
+    if (sign) {
+        return -fraction; // Apply sign
+    } else {
+        return fraction;
+    }
 }
+
+
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
  *   (2.0 raised to the power x) for any 32-bit integer x.
@@ -291,6 +408,23 @@ int floatFloat2Int(unsigned uf) {
  *   Max ops: 30 
  *   Rating: 4
  */
+
 unsigned floatPower2(int x) {
-    return 2;
+    if (x >= 128) {
+        // 如果x >= 128，结果太大，返回+INF
+        return 0x7F800000;
+    } 
+    if (x >= -126) {
+        // 如果x在正常范围内，计算出指数部分
+        return (x + 127) << 23;
+    } 
+    if (x >= -149) {
+        // 如果x在非正常化范围内，计算出尾数部分
+        return 1 << (x + 149);
+    } 
+    // 如果x太小，无法表示，返回0
+    return 0;
 }
+
+
+
