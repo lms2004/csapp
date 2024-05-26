@@ -253,14 +253,28 @@ int conditional(int x, int y, int z) {
  */
 int isLessOrEqual(int x, int y) {
     int flagx, flagy, notZero, flag, less, result;
+    
+    // 计算 x 的符号位（0 表示正数，1 表示负数）
     flagx = (x >> 31 & 1);
+    
+    // 计算 y 的符号位（0 表示正数，1 表示负数）
     flagy = (y >> 31 & 1);
+    
+    // 判断 x 和 y 的符号是否不同（1 表示不同，0 表示相同）
     notZero = !!(flagx ^ flagy);
-    flag = ~notZero + 1;
+    
+    // 计算 x - y 的符号位，表示 x 是否小于 y（0 表示 x >= y，1 表示 x < y）
     less = ((x + (~y + 1)) >> 31 & 1);
-    result = (!(x ^ y)) | ((flag & flagx) | (~flag & less));
+    
+    // 计算最终结果
+    // (!(x ^ y)) 用于判断 x 是否等于 y，相等则结果为1，不等则结果为0
+    // (flag & flagx) 用于处理符号不同的情况，如果符号不同且 x 为负数，则结果为1，否则为0
+    // (~flag & less) 用于处理符号相同的情况，如果符号相同且 x < y，则结果为1，否则为0
+    result = (!(x ^ y)) | ((notZero & flagx) | (!notZero & less));
+    
     return result;
 }
+
 
 //4
 /* 
