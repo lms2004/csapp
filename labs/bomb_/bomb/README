@@ -1,30 +1,94 @@
-这是各个阶段的c_like代码
+// Phase 1
 
-phase_1
-
-
-阶段二：
-
-
-rsi = rsp
-
-read_six_numbers()
-
-if *rsp != 1{
-    爆炸
+esi = $0x402400;         // 字符串地址
+strings_not_equal();
+if (eax == 0) {
+    release_sp();
+} else {
+    explode_bomb();
 }
 
-rbx = rsp + 4
-rbp = rsp + 0x18
 
-do{
-    eax = rbx - 4
-    eax = eax + eax
-    if *rbx - eax !=0 {      
-        爆炸
+// Phase 2
+
+rsp = rsp -0x28;            // 一个栈帧大小为 0x28
+rsi = rsp;
+
+read_six_numbers();  
+
+if (*rsp != 1) {
+    explode_bomb();
+}
+
+rbx = rsp + 4;          // 栈顶第2个元素地址
+rbp = rsp + 0x18;       // 栈顶第6个元素地址
+
+do {
+    eax = *(rbx - 4);   // rbx 前一个元素
+    if (*rbx != eax * 2) {      
+        explode_bomb();
     } 
-    rbx += 4
-}while (rbx - rbp <= 0)
+    rbx += 4;           // rbx 指向下一个元素
+} while (rbx <= rbp);   // rbx 为栈顶第7个元素地址 (实际不存在)
 
 ...释放栈帧
-rsp += 0x28
+rsp += 0x28;
+
+
+// Phase 3
+
+rsp = rsp - 0x18
+rcx = rsp + 0xc
+rdx = rsp + 8
+esi = $0x4025cf
+eax = 0
+__isoc99_sscanf@plt()
+if eax <= 1 {   //  有符号比较
+    explode_bomb()
+}
+
+if *(rsp + 8) - 7 > 0 {    //  无符号比较
+    explode_bomb()
+}
+
+eax = rsp + 8
+jmp 0x402470 + 8 *(rsp + 8)
+x = 0x402470 + 8 *(rsp + 8)
+switch(x) {
+    case 0x400f7c:
+        eax = 0xcf;
+        break;
+    case 0x400f83:
+        eax = 0x2c3;
+        break;
+    case 0x400f8a:
+        eax = 0x100;
+        break;
+    case 0x400f91:
+        eax = 0x185;
+        break;
+    case 0x400f98:
+        eax = 0xce;
+        break;
+    case 0x400f9f:
+        eax = 0x2aa;
+        break;
+    case 0x400fa6:
+        eax = 0x147;
+        break;
+    case 0x400fad:
+        call explode_bomb();
+        break;
+    case 0x400fb2:
+        eax = 0x0;
+        break;
+    case 0x400fb9:
+        eax = 0x137;
+}
+
+
+if eax != *(rsp + 0xc){
+    explode_bomb()
+}
+
+ret
