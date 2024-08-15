@@ -1,49 +1,37 @@
-####################################################################
-# CS:APP Proxy Lab
-#
-# Student Source Files
-####################################################################
-
-This directory contains the files you will need for the CS:APP Proxy
-Lab.
+此目录包含您在 CS
+Proxy 实验中所需的文件。
 
 proxy.c
 csapp.h
 csapp.c
-    These are starter files.  csapp.c and csapp.h are described in
-    your textbook. 
+这些是起始文件。csapp.c 和 csapp.h 在您的教科书中有描述。
 
-    You may make any changes you like to these files.  And you may
-    create and handin any additional files you like.
+sql
+Copy code
+您可以对这些文件进行任何更改。同时，您可以创建和提交任何您喜欢的附加文件。
 
-    Please use `port-for-user.pl' or 'free-port.sh' to generate
-    unique ports for your proxy or tiny server. 
-
+请使用 `port-for-user.pl' 或 'free-port.sh' 为您的代理或 tiny 服务器生成唯一端口。
 Makefile
-    This is the makefile that builds the proxy program.  Type "make"
-    to build your solution, or "make clean" followed by "make" for a
-    fresh build. 
+这是构建代理程序的 Makefile。输入 "make" 来构建您的解决方案，或输入 "make clean" 然后 "make" 来进行全新构建。
 
-    Type "make handin" to create the tarfile that you will be handing
-    in. You can modify it any way you like. Your instructor will use your
-    Makefile to build your proxy from source.
-
+arduino
+Copy code
+输入 "make handin" 来创建您将要提交的 tar 文件。您可以对其进行任何修改。您的导师将使用您的 Makefile 从源代码构建您的代理。
 port-for-user.pl
-    Generates a random port for a particular user
-    usage: ./port-for-user.pl <userID>
+为特定用户生成随机端口
+用法：./port-for-user.pl <userID>
 
 free-port.sh
-    Handy script that identifies an unused TCP port that you can use
-    for your proxy or tiny. 
-    usage: ./free-port.sh
+方便脚本，用于识别您可以用于代理或 tiny 的未使用 TCP 端口。
+用法：./free-port.sh
 
 driver.sh
-    The autograder for Basic, Concurrency, and Cache.        
-    usage: ./driver.sh
+Basic、Concurrency 和 Cache 的自动评分脚本。
+用法：./driver.sh
 
 nop-server.py
-     helper for the autograder.         
+自动评分器的助手。
 
 tiny
-    Tiny Web server from the CS:APP text
-
+来自 CS
+教科书的 Tiny Web 服务器

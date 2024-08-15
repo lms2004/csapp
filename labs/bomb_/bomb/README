@@ -1,0 +1,30 @@
+这是各个阶段的c_like代码
+
+phase_1
+
+
+阶段二：
+
+
+rsi = rsp
+
+read_six_numbers()
+
+if *rsp != 1{
+    爆炸
+}
+
+rbx = rsp + 4
+rbp = rsp + 0x18
+
+do{
+    eax = rbx - 4
+    eax = eax + eax
+    if *rbx - eax !=0 {      
+        爆炸
+    } 
+    rbx += 4
+}while (rbx - rbp <= 0)
+
+...释放栈帧
+rsp += 0x28
