@@ -38,11 +38,14 @@ rsp += 0x28;
 // Phase 3
 
 rsp = rsp - 0x18
-rcx = rsp + 0xc
-rdx = rsp + 8
-esi = $0x4025cf
-eax = 0
+    // 调用函数前参数设置   （output为rdi   num_1）
+rcx = rsp + 0xc     // num_4
+rdx = rsp + 8       // num_3
+esi = $0x4025cf     // num_2
+
+eax = 0             // 获取函数返回值
 __isoc99_sscanf@plt()
+
 if eax <= 1 {   //  有符号比较
     explode_bomb()
 }
