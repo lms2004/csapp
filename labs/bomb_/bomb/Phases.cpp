@@ -1,5 +1,6 @@
 
 void explode_bomb(){};
+
 //  phase_1
 int main(){
     std::string string_ = read();
@@ -80,6 +81,44 @@ int main(char * output){
     }
     if (ret != y){
         explode_bomb();
+    }
+
+    return 0;
+}
+
+// 
+int func_4(int target, int low, int high) {
+    int range_size = high - low;    // 当前搜索范围的大小
+    range_size = (range_size + (range_size >> 31)) >> 1;   // 处理符号位并计算中点偏移量
+    int mid = range_size + low;     // 计算当前中间点的值
+
+    if(mid > target) {
+        return 2 * func_4(target, low, mid - 1); // 在左半部分继续搜索
+    } else if(mid < target) {
+        return 2 * func_4(target, mid + 1, high) + 1; // 在右半部分继续搜索
+    } else {
+        return 0; // 找到目标值，返回0
+    }
+}
+
+
+
+int main(char *output) {
+    int x, y;
+    int check = sscanf(output, "%d %d", &x, &y); // 解析用户输入
+    if (check != 2) {
+        explode_bomb(); // 如果输入格式不对，触发炸弹
+    }
+
+    if (x > 14) {
+        explode_bomb(); // 如果 x 超过 14，触发炸弹
+    }
+    // x 小于等于 14
+
+    check = func_4(x, 0, 14); // 调用 func_4 进行计算
+    
+    if (check != 0 || y != 0) {
+        explode_bomb(); // 如果返回值不正确，触发炸弹 
     }
 
     return 0;

@@ -54,9 +54,9 @@ if *(rsp + 8) - 7 > 0 {    //  无符号比较
     explode_bomb()
 }
 
-eax = rsp + 8
-jmp 0x402470 + 8 *(rsp + 8)
-x = 0x402470 + 8 *(rsp + 8)
+eax = *(rsp + 8)
+jmp 0x402470 + 8 *eax
+
 switch(x) {
     case 0x400f7c:
         eax = 0xcf;
@@ -95,3 +95,76 @@ if eax != *(rsp + 0xc){
 }
 
 ret
+
+// Phase 4
+
+void phase_4() {
+    // 减小栈指针，准备局部变量空间
+    rsp -= 18;
+
+    // 函数参数设置
+    int* num_4 = (int*)(rsp + 0xc); // num_4 (y)
+    int* num_3 = (int*)(rsp + 8);   // num_3 (x)
+
+    // 读取用户输入
+    esi = 0x4025cf;  // 指向输入格式字符串
+    eax = 0;
+    int result = __isoc99_sscanf(esi, "%d %d", num_4, num_3);
+
+    // 判断输入是否合法
+    if (result != 2) {
+        explode_bomb();
+    }
+
+    // 判断 num_3 是否超出范围
+    if (*num_3 > 0xe) {
+        explode_bomb();
+    }
+
+    // 设置参数，准备调用 func_4
+    int num_2 = 0;        // num_2
+    int num_1 = *num_3;   // num_1
+    int max_value = 0xe;  // 最大值 (edx)
+
+    // 调用 func_4
+    eax = func_4(num_1, num_2, max_value);
+
+    // 判断 func_4 的返回值是否合法
+    if (eax <= 0) {
+        explode_bomb();
+    } else {
+        // 判断 num_4 是否为0
+        if (*num_4 != 0) {
+            explode_bomb();
+        }
+    }
+
+    // 恢复栈指针并返回
+    rsp += 24;
+    return;
+}
+
+int func_4(int num_1, int num_2, int max_value) {
+    // 减小栈指针，准备局部变量空间
+    rsp -= 8;
+
+    // 计算中间值
+    int mid = (max_value - num_2) / 2 + num_2;
+
+    // 递归处理
+    if (mid > num_1) {
+        max_value = mid - 1;
+        eax = func_4(num_1, num_2, max_value);
+        eax *= 2;
+    } else if (mid < num_1) {
+        num_2 = mid + 1;
+        eax = func_4(num_1, num_2, max_value);
+        eax = eax * 2 + 1;
+    } else {
+        eax = 0;
+    }
+
+    // 恢复栈指针并返回
+    rsp += 8;
+    return eax;
+}
