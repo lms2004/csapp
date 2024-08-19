@@ -1,3 +1,8 @@
+using namespace std;
+#include<string>
+
+#include<string.h>
+
 
 void explode_bomb(){};
 
@@ -122,4 +127,67 @@ int main(char *output) {
     }
 
     return 0;
+}
+
+// phase_5
+
+
+int string_length(string * str){
+    if(!(*str)[0]){
+        return 0;
+    }
+    string * str_offset_addr = str;
+    int str_len = 0;
+
+    do{
+        str_offset_addr += 1;
+        str_len = str_offset_addr - str;
+    }
+    while((*str_offset_addr)[0]);
+
+    return str_len;
+}
+
+bool strings_not_equal(string * str1, string * str2){
+    if(string_length(str1) != string_length(str2)){
+        return true;
+    }
+
+    if(!(*str1)[0]){
+        return false;
+    }
+    
+    int i = 0;
+
+    while((*str1)[i] == (*str2)[i]){
+        i++;
+        if(!(*str1)[i]){
+            return false;
+        }
+
+        if((*str1)[i] != (*str2)[i]){
+            return true;
+        }
+    }
+    return true;
+}
+
+void phase_5(string* output){
+    int len = string_length(output);
+    if(len != 6){
+        explode_bomb();
+    }
+    string *other;
+    for(int i = 0;i < 6;i++){
+        char c = (*output)[i]; 
+        c = c & 0xf;
+        (*other)[i] = *(char*)(0x4024b0 + c);
+    }
+    other[6] = '\0';
+    
+    string target = "flyers";
+    bool check = strings_not_equal(other, &target);
+    if(check){
+        explode_bomb();
+    }
 }

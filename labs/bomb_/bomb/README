@@ -96,6 +96,10 @@ if eax != *(rsp + 0xc){
 
 ret
 
+
+
+
+
 // Phase 4
 
 void phase_4() {
@@ -168,3 +172,121 @@ int func_4(int num_1, int num_2, int max_value) {
     rsp += 8;
     return eax;
 }
+
+// phase_5
+
+int string_length(string * str){
+    if(str == 0){
+        return 0;
+    }
+    string * str_offset_addr = str
+
+    do{
+        str_offset_addr += 1
+        str_len = str_offset_addr - str
+    }
+    while(*str_offset_addr != 0);
+
+    return str_len;
+}
+
+
+ void return_(){
+    eax = edx        
+    pop rbx
+    pop rbp
+    pop r12
+    ret
+};
+
+int strings_not_equal(){
+    push r12
+    push rbp
+    push rbx
+    rbx = rdi
+    rbp = rsi
+    string_length()
+    r12 = eax
+    rdi = rbp
+    string_length()
+    edx = 1
+
+    if(r12 != eax){
+        return_();
+    }
+
+    eax = *rbx
+
+    if(al == 0){
+        edx = 0
+        return_();
+    }
+
+
+    if(al == *rbp){ 
+        while(true){
+            rbx += 1
+            rbp += 1
+            eax = *(rbx)
+            
+            if(al == 0){
+                edx = 0
+                return_();
+            }
+
+            if(al != *rbp){
+                edx = 1
+                return_();
+            }
+        }
+    }else{
+        edx = 1
+        return_();
+    }
+
+}
+
+void phase_5(){
+
+    push rbx
+    rsp -= 0x20
+    rbx = rdi 
+    rax = *(fs + 0x28)
+    rax = *(rsp + 0x18) 
+    int check = string_length();
+    if(check != 6){
+        explode_bomb()
+    }
+
+    eax = 0
+    do{
+        ecx = *(rbx + rax)
+        *(rsp) = cl
+        rdx = *(rsp)
+
+        edx = edx & 0xf
+        edx = *(rdx + 0x4024b0)
+
+        *(rsp + rax + 16) = dl
+        rax += 1 
+    }while(rax != 6)
+
+    *(rsp + 0x16) = 0
+    esi = 0x40245e
+    rdi = rsp + 16
+    int check_ = strings_not_equal()
+    if(check_ != 0){
+        explode_bomb()
+    }
+    rax = *(rsp + 0x18)
+
+    rax ^= *(fs + 0x28)
+    if(rax != 0){
+        __stack_chk_fail@plt()      // 检测金丝雀值
+    }     
+
+    rsp += 0x20
+    pop rbx
+    ret
+}
+
