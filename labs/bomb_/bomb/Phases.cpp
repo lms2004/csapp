@@ -218,8 +218,14 @@ void check_array(int * arr, int n){
     }
 }
 
+typedef struct {
+    int val;
+    Node* node_next;
+}Node;
+
 void phase_6(char * output){
     int array[12];
+    Node* Node_array[6];
     read_six_numbers(output, array);
     
     check_six_numbers(array);
@@ -229,59 +235,25 @@ void phase_6(char * output){
         array[i] = 7 - array[i];
     }
 
-    int i = 0;
-    bool is_rsi =  false;
-    int target = 0;
-    int num = array[i];
-    // 第一元素
-    if(num <= 1){
-        while(num <= 1){
-            array[2* i + 8] = target;
-            i++;
-            
-            if(i == 6){
-                is_rsi = true;
-                break;
-            }   
-            num = array[i];
-        }
-    }
-
-
-
-    if(!is_rsi){
-        int* arr = (int *)(0x6032d0);
-            
-        arr = arr + 8 * num;
-    }
-
-    int arr_8 = array[8];
-    int* arr_10_ad =  &array[10];
-    int* arr_20_ad =  &array[20];
-    
-    while(true){
-        int arr_10 = *arr_10_ad;
-        int * temp = &(arr_8 + 8);
-
-
-    }
-
-
-}	for (rsi = 0; rsi != 0x18; rsi += 4) {
-        ecx = *(rsp+rsi);
-        if (ecx <= 1)
-            edx = 0x6032d0;
-        else {
-            edx = 0x6032d0;
-            for (eax = 1; eax != ecx; eax++) {
-                rdx = *(rdx+8);
+    for(int i = 0;i < 6;i++){
+        int elem = array[i];
+        Node* head = (Node*)0x6032d0;
+        if(elem > 1){
+            for(int i = 1;i == elem;i++){
+                head = head->node_next;
             }
         }
-        *(rsp+2*rsi+20) = rdx;
-	}
+        Node_array[i] = head;
+    }
 
-————————————————
+    for(int i = 0;i < 5;i++){
+        Node_array[i]->node_next = Node_array[i];
+    }
+    
 
-                            版权声明：本文为博主原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接和本声明。
-                        
-原文链接：https://blog.csdn.net/qq_38537503/article/details/117199006
+    for(int i = 0;i < 5;i++){
+        if()
+    }
+
+
+}

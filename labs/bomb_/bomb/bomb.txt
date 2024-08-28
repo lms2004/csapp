@@ -624,7 +624,7 @@ Disassembly of section .text:
   4011a9:	eb cb                	jmp    401176 <phase_6+0x82>
 -------------------------------------------------------------
 
-  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx
+  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx  -> 0x6032F0
   4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax
   4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi
   4011ba:	48 89 d9             	mov    %rbx,%rcx
