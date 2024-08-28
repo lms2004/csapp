@@ -224,7 +224,7 @@ typedef struct {
 }Node;
 
 void phase_6(char * output){
-    int array[12];
+    int array[6];
     Node* Node_array[6];
     read_six_numbers(output, array);
     
@@ -239,7 +239,7 @@ void phase_6(char * output){
         int elem = array[i];
         Node* head = (Node*)0x6032d0;
         if(elem > 1){
-            for(int i = 1;i == elem;i++){
+            for(int j = 1;j != elem;j++){
                 head = head->node_next;
             }
         }
@@ -247,12 +247,15 @@ void phase_6(char * output){
     }
 
     for(int i = 0;i < 5;i++){
-        Node_array[i]->node_next = Node_array[i];
+        Node_array[i]->node_next = Node_array[i + 1];
     }
+    Node_array[5]->node_next = nullptr;
     
 
     for(int i = 0;i < 5;i++){
-        if()
+        if(Node_array[i]->val < Node_array[i]->node_next->val){
+            explode_bomb();
+        }
     }
 
 
