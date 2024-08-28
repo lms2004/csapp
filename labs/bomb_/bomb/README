@@ -320,73 +320,41 @@ void phase_6(){
             }while(rax != rsi);
             // rax = rsi
             // edx = 7 - array[5]
-            esi = 0
-
             
-            do{
+            esi = 0
+            for(rsi = 0;rsi != 0x18;rsi += 4){
                 ecx = *(rsp + rsi);
-                //  只进行第一次
-                if(ecx <= 1){
+
+                if(ecx > 1){
+                    edx = 0x6032d0
+                    for(eax = 1;eax != ecx;eax += 1){
+                        rdx = *(rdx + 8)
+                    }
+                }else{
+                    //  只进行第一次
                     edx = 0x6032d0;
                     *(rsp + rsi *2 + 32) = *rdx;
-                    rsi += 4
-
-                    if(rsi == 24){
-                        // 跳转
-                    }
                 }
-            }while(ecx <= 1)
 
+            }
 
-            // 修改edx：    0x6032d0
-            eax = 1
-            edx = 0x6032d0
-            do{
-                rdx = *(rdx + 8)
-                eax += 1  
-            }while(eax != ecx)
-
-            do{
-                *(rsp + rsi * 2 + 32) = rdx
-                rsi += 4
-                if(rsi == 24){
-                    break;
-                }
-                ecx = *(rsp + rsi);
-                if(ecx <= 1){
-                    edx = 0x6032d0
-                }
-            }while(ecx <= 1)
-
-            
             rbx = *(rsp + 32)
-            rax = rsp + 0x28
-            rsi = rsp + 0x50
             rcx = rbx
-
-            do{    
+            for(rax = rsp + 0x28;rax != rsp + 0x50;rax += 8){
                 rdx = *(rax)
                 *(rcx + 8) = rdx
-                rax += 8
-                if(rax == rsi){
-                    break;
-                }
                 rcx = rdx
-            }while(true)
-
+            }
 
             *(rdx + 8) = 0
-            ebp = 5
-
-            do{
+            for(ebp = 5;ebp < 0;ebp -= 1){
                 rax = *(rbx + 8)
-                eax = *rax
+                eax = *rax                
                 if(*rbx < eax){
                     explode_bomb() 
                 }
                 rbx = *(rbx + 8)
-                ebp -= 1
-            }while(ebp <= 0)
+            }
 
             rsp += 0x50
             ret
@@ -395,7 +363,9 @@ void phase_6(){
 
         ebx = r12d
 
-           // 读入的六个数中，除第一个值，另外5个值不能和第一相同        
+           // 读入的六个数中，除第一个值，另外5个值不能和第一相同    
+
+        for(ebx = )    
         do{
             rax = ebx
  
@@ -408,4 +378,98 @@ void phase_6(){
 
         r13 += 4
     }while(true)
+}
+
+
+void phase_6(){
+    r13 = rsp
+    rsi = rsp
+    read_six_numbers()
+    r14 = rsp
+    r12 = 0         # i = 0
+# num_1 外层循环
+-------------------------------------------------   
+    rbp = r13   (rsp 副本)
+    eax =  *rsp - 1
+
+    if(eax <= 5){
+        explode_bomb()
+    }
+
+    r12 += 1        # i += 1
+                    # 退出整个循环(i == 6)
+    if(r12 == 6){   
+        break;
+    }
+
+    ebx = r12   # j = r12
+
+    # 内层循环
+    -------------------------------------------------   
+    rax = ebx
+    eax = *(rsp + rax + 4)
+
+    if(rbp == eax){
+        explode_bomb()
+    }
+
+    ebx += 1    # j += 1
+                # 退出内层循环(j > 5)
+    if(ebx > 5){
+        break;
+    }
+    -------------------------------------------------   
+    r13 += 4
+
+-------------------------------------------------   
+
+
+    rsi = rsp + 0x18
+    rax = r14   # addr = rsp
+    ecx = 7
+# num_2 循环
+-------------------------------------------------------------
+    edx = ecx
+    edx -= *rax 
+    *rax = edx
+    rax += 4    # addr += 4
+    if(addr == rsp + 0x18){
+        break;
+    }
+-------------------------------------------------------------
+
+    
+    for(rsi = 0;rsi != 0x18;rsi += 4){
+        ecx = *(rsp + rsi +1)
+        
+        if(ecx > 1){
+            break;
+        }
+        edx = 0x6032d0
+        *(rsp + rsi*2 + 0x20) = rdx
+
+        eax = 1
+        edx = 0x6032d0 
+        for(eax = 1;eax == ecx;eax += 1){
+            rdx = rdx + 8
+        }      
+
+    }
+
+
+
+
+
+    while(rsi != 0x18){     
+        *(rsp + rsi*2 + 0x20) = rdx
+        rsi += 4
+        ecx = *(rsp + rsi +1)
+        if(ecx > 1){
+            break;
+        }
+        edx = 0x6032d0
+   
+    }
+
+
 }

@@ -208,8 +208,8 @@ void check_six_numbers(int * arr){
         i++;
         check_array(arr, i);
     }
-
 }
+
 void check_array(int * arr, int n){
     for(int i = n;i < 5;i++){
         if(arr[i] == arr[n - 1]){
@@ -267,4 +267,21 @@ void phase_6(char * output){
     }
 
 
-}
+}	for (rsi = 0; rsi != 0x18; rsi += 4) {
+        ecx = *(rsp+rsi);
+        if (ecx <= 1)
+            edx = 0x6032d0;
+        else {
+            edx = 0x6032d0;
+            for (eax = 1; eax != ecx; eax++) {
+                rdx = *(rdx+8);
+            }
+        }
+        *(rsp+2*rsi+20) = rdx;
+	}
+
+————————————————
+
+                            版权声明：本文为博主原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接和本声明。
+                        
+原文链接：https://blog.csdn.net/qq_38537503/article/details/117199006
