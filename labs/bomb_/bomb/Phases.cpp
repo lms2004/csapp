@@ -191,3 +191,80 @@ void phase_5(string* output){
         explode_bomb();
     }
 }
+
+
+
+// 确保六个数都不相同  (并且保证都小于7) 
+//          1 -> 2~5     
+//          2 -> 3~5 
+//          ...
+void check_six_numbers(int * arr){
+    int i = 0;
+
+    while(i < 5){
+        if(arr[i] > 6){
+            explode_bomb();
+        } 
+        i++;
+        check_array(arr, i);
+    }
+
+}
+void check_array(int * arr, int n){
+    for(int i = n;i < 5;i++){
+        if(arr[i] == arr[n - 1]){
+            explode_bomb();
+        }
+    }
+}
+
+void phase_6(char * output){
+    int array[12];
+    read_six_numbers(output, array);
+    
+    check_six_numbers(array);
+
+    // 调整数组元素
+    for(int i = 0;i < 6;i++){
+        array[i] = 7 - array[i];
+    }
+
+    int i = 0;
+    bool is_rsi =  false;
+    int target = 0;
+    int num = array[i];
+    // 第一元素
+    if(num <= 1){
+        while(num <= 1){
+            array[2* i + 8] = target;
+            i++;
+            
+            if(i == 6){
+                is_rsi = true;
+                break;
+            }   
+            num = array[i];
+        }
+    }
+
+
+
+    if(!is_rsi){
+        int* arr = (int *)(0x6032d0);
+            
+        arr = arr + 8 * num;
+    }
+
+    int arr_8 = array[8];
+    int* arr_10_ad =  &array[10];
+    int* arr_20_ad =  &array[20];
+    
+    while(true){
+        int arr_10 = *arr_10_ad;
+        int * temp = &(arr_8 + 8);
+
+
+    }
+
+
+}

@@ -301,23 +301,25 @@ void phase_6(){
     do{
         rbp = r13
         eax = *r13 - 1
+           // 读入的六个数不能大于6  
         if(rax > 5){
             explode_bomb()
         }
         r12d += 1
 
-
         if(r12d == 6){
             rsi = rsp + 24
             rax = r14
             ecx = 7
+            // 调整数组元素
             // 第1个循环
             do{
                 edx = ecx - *rax
                 *rax = edx
                 rax += 4        
             }while(rax != rsi);
-
+            // rax = rsi
+            // edx = 7 - array[5]
             esi = 0
 
             
@@ -326,21 +328,19 @@ void phase_6(){
                 //  只进行第一次
                 if(ecx <= 1){
                     edx = 0x6032d0;
-                    *(rsp + rsi *2 + 32) = rdx;
+                    *(rsp + rsi *2 + 32) = *rdx;
                     rsi += 4
 
                     if(rsi == 24){
-                        rbx = *(rsp + 32)
-                        rax = rsp + 0x28
-                        rsi = rsp + 0x50
-                        rcx = rbx
+                        // 跳转
                     }
                 }
             }while(ecx <= 1)
 
+
+            // 修改edx：    0x6032d0
             eax = 1
             edx = 0x6032d0
-
             do{
                 rdx = *(rdx + 8)
                 eax += 1  
@@ -394,9 +394,11 @@ void phase_6(){
         }
 
         ebx = r12d
-        
+
+           // 读入的六个数中，除第一个值，另外5个值不能和第一相同        
         do{
             rax = ebx
+ 
             eax = *(rsp + rax * 4)
             if(*rbp == eax){
                 explode_bomb()
