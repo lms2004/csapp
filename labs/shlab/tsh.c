@@ -93,6 +93,22 @@ void Kill(pid_t __pid, int __sig){
     }
 }
 
+void Print(char* msg){
+    write(1, msg, strlen(msg));
+}
+
+
+int is_numeric(char *str) {
+        // 逐个检查字符串中的每个字符是否为数字
+    while (*str) {
+        if (!isdigit(*str)) {
+            return 0;  // 如果遇到不是数字的字符，返回 false
+        }
+        str++;
+    }
+
+    return 1;  // 如果所有字符都是数字，则返回 true
+}
 
 
 /*
@@ -194,7 +210,7 @@ void eval(char *cmdline)
         sigprocmask(SIG_SETMASK, &prev_one, NULL); /* 取消阻塞 SIGCHLD，确保子进程能发送终止信号 */
         setpgid(0, 0);
         if (execve(argv[0], argv, environ) < 0) {
-            unix_error("execve error");
+            fprintf(stdout, "%s: Command not found\n", argv[0]);
             exit(1);
         }
         exit(0);
@@ -318,15 +334,6 @@ int builtin_cmd(char **argv)
 
         for (int i = 0; i < MAXJOBS; i++) {
             if (jobs[i].pid != 0) {  
-                // char maker = ' ';
-                
-                // if(i == second){
-                //     maker = '-';
-                // }
-                // else if(i == last){
-                //     maker = '+';
-                // }
-
                 fprintf(stdout, "[%d] (%d) %s %s\n",jobs[i].jid , jobs[i].pid,
                                          get_job_state(jobs[i].state), jobs[i].cmdline);
             }
@@ -347,38 +354,64 @@ int builtin_cmd(char **argv)
  */
 void do_bgfg(char **argv) 
 {  
+    int isBg = !strcmp(argv[0], "bg");
+
     if(argv[1] == NULL){
-        warning("No PID/JID for this command!!");
-        return ;
-    }
-    int target_pid = 0, target_jid = 0;
-    if(argv[1][0] == '%'){  
-        target_jid = atoi(argv[1] + 1);  // 将字符串转换为整数 (PID/JID)
-    }else{
-        target_pid = atoi(argv[1]);  // 将字符串转换为整数 (PID/JID)
-    }
-
-    for(int i = 0;i < MAXJOBS;i++){
-        if (jobs[i].pid == 0){
-            fprintf(stdout, "There isn't a thread whose PID/JID is %d\n", target_jid?target_jid:target_pid);
-            return;
+        if (isBg){
+            Print("bg command requires PID or %jobid argument\n");
+        }else{ 
+            Print("fg command requires PID or %jobid argument\n");
         }
-        
-        if((target_jid && jobs[i].jid == target_jid)||
-              (target_pid  && jobs[i].pid == target_pid)){
-
-                    Kill(-jobs[i].pid, SIGCONT);
-                    if (!strcmp(argv[0], "bg")){//      命令为bg
-                        jobs[i].state = BG; 
-                         
-                    }else{                      //      命令为fg
-                        jobs[i].state = FG;
-                        waitfg(jobs[i].pid);
-                }
-        }
-        
         return;
     }
+
+    int target_pid = 0, target_jid = 0;
+
+    if(argv[1][0] == '%'){      
+        if(is_numeric(argv[1] + 1)){
+            target_jid = atoi(argv[1] + 1);  // 将字符串转换为整数 JID        
+        }else{
+            if (isBg){
+                Print("bg: argument must be a PID or %jobid\n");
+            }else{ 
+                Print("fg: argument must be a PID or %jobid\n");
+            }
+        }
+    }else{
+        if(is_numeric(argv[1])){
+            target_pid = atoi(argv[1]);  // 将字符串转换为整数 PID     
+        }else{
+            if (isBg){
+                Print("bg: argument must be a PID or %jobid\n");
+            }else{ 
+                Print("fg: argument must be a PID or %jobid\n");
+            }
+        }
+    }
+
+    for (int i = 0; i < MAXJOBS; i++) {
+        if (jobs[i].pid != 0) {
+            if((target_jid && jobs[i].jid == target_jid)||
+                (target_pid  && jobs[i].pid == target_pid)){
+                        Kill(-jobs[i].pid, SIGCONT);
+                        if (isBg){//      命令为bg
+                            jobs[i].state = BG; 
+                            fprintf(stdout,"[%d] (%d) %s\n",jobs[i].jid ,jobs[i].pid , jobs[i].cmdline);
+                            return;
+                        }else{                      //      命令为fg
+                            jobs[i].state = FG;
+                            waitfg(jobs[i].pid);
+                            return;
+                    }
+            }
+	    }
+    }
+    if((target_jid)){
+        fprintf(stdout, "%s: No such job\n",argv[1]);
+    }else if(target_pid){
+        fprintf(stdout, "(%s): No such process\n",argv[1]);
+    }
+    return;
 }
 
 /* 
