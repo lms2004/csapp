@@ -48,7 +48,7 @@ struct job_t {              /* The job struct */
     int state;              /* UNDEF, BG, FG, or ST */
     char cmdline[MAXLINE];  /* command line */
 };
-struct job_t jobs[MAXJOBS]; /* The job list */
+volatile struct job_t jobs[MAXJOBS]; /* The job list */
 /* End global variables */
 
 
@@ -88,9 +88,13 @@ handler_t *Signal(int signum, handler_t *handler);
 
 /* 包装函数 */
 void Kill(pid_t __pid, int __sig){
-        if (kill(__pid, __sig) < 0) {
-        unix_error("kill %d error");
+    if (kill(__pid, __sig) < 0) {
+        PrintErr("Kill Error");
     }
+}
+
+void PrintErr(char* msg){
+    write(2, msg, strlen(msg));
 }
 
 void Print(char* msg){
@@ -215,6 +219,7 @@ void eval(char *cmdline)
         }
         exit(0);
     } 
+
     char job_cmdline[MAXLINE];
     strcpy(job_cmdline, cmdline);
     job_cmdline[strlen(cmdline) - 1] = '\0';
@@ -224,10 +229,14 @@ void eval(char *cmdline)
         fprintf(stdout, "[%d] (%d) %s\n",pid2jid(pid), pid, job_cmdline);
     }else{
         addjob(jobs, pid, FG, cmdline); /* 将子进程加入作业列表 */
+        
     }
+
     sigprocmask(SIG_SETMASK, &prev_one, NULL); /* 解除阻塞 SIGCHLD，允许信号处理*/
     
-    waitfg(pid);
+    if(!bg){
+        waitfg(pid);
+    }
     return;
 }
 
@@ -289,25 +298,6 @@ int parseline(const char *cmdline, char **argv)
 }
 
 
-/*
-解析job_state为具体状态
-    @param state (int)
-    @return  state (char*)
-*/
-const char* get_job_state(int state) {
-    switch (state) {
-        case FG:
-            return "Foreground";  // 前台运行
-        case BG:
-            return "Running";      // 后台运行
-        case ST:
-            return "Stopped";      // 停止
-        default:
-            return "Undefined";    // 未定义状态
-    }
-}
-
-
 /* 
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
@@ -323,21 +313,14 @@ int builtin_cmd(char **argv)
     }
     
     if(!strcmp(argv[0], "jobs")){
-        // int last = -1;
-        // int second = -1;
-        // for(int i = 0;i < MAXJOBS;i++){
-        //     if(jobs[i].state == ST || jobs[i].state == BG){
-        //         second = last;
-        //         last = i;
-        //     }
-        // }
+        sigset_t mask_all,prev_all;
 
-        for (int i = 0; i < MAXJOBS; i++) {
-            if (jobs[i].pid != 0) {  
-                fprintf(stdout, "[%d] (%d) %s %s\n",jobs[i].jid , jobs[i].pid,
-                                         get_job_state(jobs[i].state), jobs[i].cmdline);
-            }
-        }
+        sigfillset(&mask_all);
+        sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+
+        listjobs(jobs);
+        
+        sigprocmask(SIG_SETMASK, &prev_all, NULL);
         return 1;
     }
     
@@ -356,62 +339,65 @@ void do_bgfg(char **argv)
 {  
     int isBg = !strcmp(argv[0], "bg");
 
-    if(argv[1] == NULL){
-        if (isBg){
-            Print("bg command requires PID or %jobid argument\n");
-        }else{ 
-            Print("fg command requires PID or %jobid argument\n");
-        }
+    // 检查是否提供了参数
+    if (argv[1] == NULL) {
+        Print(isBg ? "bg command requires PID or %jobid argument\n" : "fg command requires PID or %jobid argument\n");
         return;
     }
 
     int target_pid = 0, target_jid = 0;
-
-    if(argv[1][0] == '%'){      
-        if(is_numeric(argv[1] + 1)){
-            target_jid = atoi(argv[1] + 1);  // 将字符串转换为整数 JID        
-        }else{
-            if (isBg){
-                Print("bg: argument must be a PID or %jobid\n");
-            }else{ 
-                Print("fg: argument must be a PID or %jobid\n");
-            }
+    if (argv[1][0] == '%') { // %jobid
+        if (is_numeric(argv[1] + 1)) {
+            target_jid = atoi(argv[1] + 1);  
+        } else {
+            Print(isBg ? "bg: argument must be a PID or %jobid\n" : "fg: argument must be a PID or %jobid\n");
+            return;
         }
-    }else{
-        if(is_numeric(argv[1])){
-            target_pid = atoi(argv[1]);  // 将字符串转换为整数 PID     
-        }else{
-            if (isBg){
-                Print("bg: argument must be a PID or %jobid\n");
-            }else{ 
-                Print("fg: argument must be a PID or %jobid\n");
-            }
+    } else { // PID
+        if (is_numeric(argv[1])) {
+            target_pid = atoi(argv[1]);
+        } else {
+            Print(isBg ? "bg: argument must be a PID or %jobid\n" : "fg: argument must be a PID or %jobid\n");
+            return;
         }
     }
+    struct job_t *job = NULL;
+    sigset_t mask_all, prev_all;
 
-    for (int i = 0; i < MAXJOBS; i++) {
-        if (jobs[i].pid != 0) {
-            if((target_jid && jobs[i].jid == target_jid)||
-                (target_pid  && jobs[i].pid == target_pid)){
-                        Kill(-jobs[i].pid, SIGCONT);
-                        if (isBg){//      命令为bg
-                            jobs[i].state = BG; 
-                            fprintf(stdout,"[%d] (%d) %s\n",jobs[i].jid ,jobs[i].pid , jobs[i].cmdline);
-                            return;
-                        }else{                      //      命令为fg
-                            jobs[i].state = FG;
-                            waitfg(jobs[i].pid);
-                            return;
-                    }
-            }
-	    }
+    // 阻塞所有信号，防止在修改 jobs 时被中断
+    sigfillset(&mask_all);
+    sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+
+    if (target_jid) {
+        job = getjobjid(jobs, target_jid);
+    } else if (target_pid) {
+        job = getjobpid(jobs, target_pid);
     }
-    if((target_jid)){
-        fprintf(stdout, "%s: No such job\n",argv[1]);
-    }else if(target_pid){
-        fprintf(stdout, "(%s): No such process\n",argv[1]);
+
+    if (job == NULL) {
+        if (target_jid) {
+            fprintf(stdout, "%s: No such job\n", argv[1]);
+        } else {
+            fprintf(stdout, "(%s): No such process\n", argv[1]);
+        }
+
+        sigprocmask(SIG_SETMASK, &prev_all, NULL);  // 恢复信号屏蔽集
+        return;
     }
-    return;
+
+    // 发送 SIGCONT 信号，恢复作业
+    Kill(-job->pid, SIGCONT);
+
+    
+    if (isBg) {  // 如果是 bg 命令
+        job->state = BG;
+        fprintf(stdout, "[%d] (%d) %s\n", job->jid, job->pid, job->cmdline);
+    } else {  // 如果是 fg 命令
+        job->state = FG;
+    }
+    // 恢复信号屏蔽集
+    sigprocmask(SIG_SETMASK, &prev_all, NULL);
+    waitfg(job->pid);
 }
 
 /* 
@@ -427,7 +413,6 @@ void waitfg(pid_t pid) {
     while (pid == fgpid(jobs)) {
         sigsuspend(&prev_mask); // 暂时解除阻塞，等待信号
     }
-
 
     sigprocmask(SIG_SETMASK, &prev_mask, NULL); // 恢复之前的信号屏蔽字
 }
@@ -447,8 +432,8 @@ void waitfg(pid_t pid) {
  */
 void sigchld_handler(int sig) {
     int olderrno = errno;
-    pid_t pid;
     int status;
+    pid_t pid;
     sigset_t mask_all, prev_all;
 
     sigfillset(&mask_all);
@@ -465,11 +450,11 @@ void sigchld_handler(int sig) {
             struct job_t *job = getjobpid(jobs, pid);
             if (job != NULL) {
                 job->state = ST;
+                // 非异步信号安全输出（待实现）
                 fprintf(stdout, "Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, WSTOPSIG(status));
             }
         }
-
-
+        
         sigprocmask(SIG_SETMASK, &prev_all, NULL);
     }
 
@@ -482,14 +467,27 @@ void sigchld_handler(int sig) {
  *    to the foreground job.  
  */
 void sigint_handler(int sig) 
-{   int olderrno = errno;
-    pid_t fgpid_ = fgpid(jobs);
-    if(fgpid_ != 0){
-        Kill(-fgpid(jobs), SIGINT);        
+{   
+    int olderrno = errno;
+    sigset_t mask_all, prev_all;
+
+    // 访问 jobs 之前，阻塞所有信号
+    sigfillset(&mask_all);  
+    sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    
+    pid_t fgpid_ = fgpid(jobs);  // 安全地访问 jobs，获取前台作业的 PID
+
+
+
+    if (fgpid_ != 0) {
+        Kill(-fgpid_, SIGINT);
     }
-    errno = olderrno;
-    return;
+
+    // 恢复之前的信号屏蔽集
+    sigprocmask(SIG_SETMASK, &prev_all, NULL);
+    errno = olderrno;  // 恢复 errno
 }
+
 
 /*
  * sigtstp_handler - The kernel sends a SIGTSTP to the shell whenever
@@ -498,10 +496,24 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-    pid_t pid = fgpid(jobs);
-    if(pid != 0){
-        Kill(-pid, SIGTSTP);
+    int olderrno = errno;
+    sigset_t mask_all, prev_all;
+
+    // 访问 jobs 之前，阻塞所有信号
+    sigfillset(&mask_all);  
+    sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    
+    pid_t fgpid_ = fgpid(jobs);  // 安全地访问 jobs，获取前台作业的 PID
+
+
+
+    if (fgpid_ != 0) {
+        Kill(-fgpid_, SIGTSTP);
     }
+
+    // 恢复之前的信号屏蔽集
+    sigprocmask(SIG_SETMASK, &prev_all, NULL);
+    errno = olderrno;  // 恢复 errno
 }
 
 
@@ -655,7 +667,7 @@ void listjobs(struct job_t *jobs)
 		    printf("listjobs: Internal error: job[%d].state=%d ", 
 			   i, jobs[i].state);
 	    }
-	    printf("%s", jobs[i].cmdline);
+	    printf("%s\n", jobs[i].cmdline);
 	}
     }
 }
