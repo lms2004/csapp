@@ -5,14 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#define Debug
+bool isDetailed = false;
 
 typedef struct
 {
     bool vaild;
     int tag;
-    unsigned char* data;
-
     int count;
 }Line;
 
@@ -45,7 +43,6 @@ typedef struct
 void allocateLine(Line* line,int b, int tag){
     line->vaild = false;
     line->tag = tag;
-    line->data = (unsigned char*)calloc((1<<b), sizeof(unsigned char));
 
     line->count = 0;
 }
@@ -92,69 +89,108 @@ int getTag(long int address, int s, int b){
     return address >> (b + s);
 }
 
-void Loadhandler(Cache* cache,char* instr, int tag, int index, int offset, int btyes){
-    #if defined(Debug)
-        printf("%s", instr);
-    #endif
-    Set* set = &((cache->sets)[index]);
-    Line* lines = set->lines;
-    int E = cache->parms.E;
-    for(int i = 0;i < E;i++){
+void countLowerPlusOne(Cache* cache, int i, Line* lines){
+    int Icount = lines[i].count;
+    for(int j = 0;j < cache->sets->UsedLines;j++){
+        if(j == i){
+            continue;
+        }
+        if(lines[j].count < Icount){
+            lines[j].count++;
+        }
+    }
+    lines[i].count = 0;
+}
+
+void countPlusOne(Cache* cache, int i, Line* lines){
+    for(int j = 0;j < cache->sets->UsedLines;j++){
+        if(j == i){
+            continue;
+        }
+        lines[j].count++;
+    }
+}
+
+
+bool isHit(Cache* cache, int index, int tag){
+    Line* lines = (&((cache->sets)[index]))->lines;
+    for(int i = 0;i < cache->parms.E;i++){
         Line* line = &lines[i];
         if(line->vaild && line->tag == tag){
             cache->stats.hits++;
-            #if defined(Debug)
-                printf(" hit\n");
-            #endif
-            return;
+            countLowerPlusOne(cache, i, lines);
+
+            if(isDetailed){
+                printf(" hit");
+            }
+            return true;
         }
     }
+    return false;
+}
 
-    cache->stats.misses++;
-    #if defined(Debug)
-        printf(" miss");
-    #endif
-
+int LRU(Cache* cache, Set* set, int E, Line* lines){
+    int newIndex = 0;
     if(set->UsedLines >= E){
-        #if defined(Debug)
-            printf(" eviction");
-        #endif
         cache->stats.evictions++;
-        int min = 0;
+        int max = -1;
         for(int i = 0;i < E;i++){
             Line* line = &lines[i];
-            if(line->count < min){
-                min = line->count;
+            if(line->count > max){
+                max = line->count;
+                newIndex = i;
             }
+        }
+        if(isDetailed){
+            printf(" eviction");
         }
     }else{
         set->UsedLines++;
-        int used = set->UsedLines;
-        lines[used - 1].vaild = true;
-        lines[used - 1].count = 0;
-        lines[used - 1].tag = tag;
-        for(int i = 0;i < used - 1;i++){
-            lines[i].count++;
-        }
+        newIndex = set->UsedLines - 1;
     }
-    #if defined(Debug)
-        printf("\n");
-    #endif
+
+    return newIndex;
 }
 
-void Storehandler(Cache* cache, char* instr, int tag, int index, int offset, int btyes){
-    printf("start to handle store\n");
+
+void Loadhandler(Cache* cache, int tag, int index, int offset, int btyes){
+    Set* set = &((cache->sets)[index]);
+    Line* lines = set->lines;
+    int E = cache->parms.E;
+
+    if(isHit(cache, index, tag)){
+        return;
+    }
+
+    cache->stats.misses++;
+    if(isDetailed){
+        printf(" miss");
+    }
+
+    int newIndex = LRU(cache, set, E, lines);
+
+
+
+    lines[newIndex].vaild = true;
+    lines[newIndex].count = 0;
+    lines[newIndex].tag = tag;
+    countPlusOne(cache, newIndex, lines);
 }
 
-void Modifyhandler(Cache* cache, char* instr, int tag, int index, int offset, int btyes){
-    printf("start to handle modify\n");
+void Storehandler(Cache* cache, int tag, int index, int offset, int btyes){
+    Loadhandler(cache, tag, index, offset, btyes);
+}
+
+void Modifyhandler(Cache* cache, int tag, int index, int offset, int btyes){
+    Loadhandler(cache, tag, index, offset, btyes);
+    Storehandler(cache, tag, index, offset, btyes);
 }
 
 void handler(char* instr, Cache* cache){
     char* instrPrint = (char*)malloc(32*sizeof(char));
     strcpy(instrPrint, instr);
     instrPrint[strlen(instr) -2] = '\0';
-
+    
     char* addr = instr + 3, *btyes;
     for(int i = 0;i < strlen(addr);i++){
         if(addr[i] == ','){
@@ -173,20 +209,24 @@ void handler(char* instr, Cache* cache){
     int offset = getOffset(address, b);
     int tag = getTag(address, s, b);
 
-
+     if(isDetailed)
+        printf("%s", instrPrint+1);
     switch (instr[1])
     {
     case 'L':
-        Loadhandler(cache, instrPrint, tag, index, offset, bytes);
+        Loadhandler(cache, tag, index, offset, bytes);
         break;
     case 'S':
-        Storehandler(cache, instrPrint ,tag, index, offset, bytes);
+        Storehandler(cache, tag, index, offset, bytes);
         break;
     case 'M':
-        Modifyhandler(cache, instrPrint, tag, index, offset, bytes);
+        Modifyhandler(cache, tag, index, offset, bytes);
         break;
     default:
         break;
+    }
+    if(isDetailed){
+        printf("\n");
     }
 }
 
@@ -198,10 +238,15 @@ int main(int argc, char*args[])
     int s = atoi(args[2]);
     int E = atoi(args[4]);
     int b = atoi(args[6]);
-    printf("s:%d E:%d b:%d\n", s, E, b);
+
+    for(int i = 1;i < strlen(args[1]);i++){
+        if(args[1][i] == 'v'){
+            isDetailed = true;
+        }
+    }
+
     Cache cache;
     allocateCache(&cache, s, E, b);
-
 
     FILE* file = fopen(args[8], "r");
 
@@ -215,6 +260,6 @@ int main(int argc, char*args[])
     }
 
 
-    printSummary(0, 0, 0);
+    printSummary(cache.stats.hits, cache.stats.misses, cache.stats.evictions);
     return 0;
 }
